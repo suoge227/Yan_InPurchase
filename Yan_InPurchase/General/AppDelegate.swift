@@ -18,7 +18,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             PurchaseAPI.shared.completeTransactions()
         }
 
-        _ = PurchaseAPI.deleteFromKeychain(key: ProductUserdefaultKeys.hasPurchasedItem)
+        PurchaseAPI.getUserItem()
+//        _ = PurchaseAPI.deleteFromKeychain()
 
         window = UIWindow(frame: UIScreen.main.bounds)
         window?.rootViewController = UINavigationController(rootViewController: ViewController())

@@ -47,14 +47,17 @@ class PurchaseAPI: NSObject {
     /// 订阅是否过期
     var isOverdue: Bool {
         let currentDate = Date()
-        guard let item = PurchaseAPI.readFromKeychain(key: ProductUserdefaultKeys.hasPurchasedItem) else {
-            return false
-        }
-        if item.OverdueDate.compare(currentDate) == .orderedAscending {
-            return true
+        if let item = PurchaseAPI.readFromKeychain(key: ProductUserdefaultKeys.hasPurchasedItem)  {
+            guard let overdueDate = item.OverdueDate else { return false }
+            if overdueDate.compare(currentDate) == .orderedAscending {
+                return true
+            } else {
+                return false
+            }
         } else {
             return false
         }
+
 
     }
 
@@ -73,7 +76,7 @@ class PurchaseAPI: NSObject {
     }
 
     //获取所有产品信息
-    func getProductsInfo(completion:@escaping ()-> Void, updateUIClosure: ()->Void) {
+    func getProductsInfo(completion:@escaping ()-> Void) {
         SwiftyStoreKit.retrieveProductsInfo([ProductID.weekID, ProductID.yearID]) { result in
             if result.error == nil {
                 for product in result.retrievedProducts {
@@ -98,7 +101,7 @@ class PurchaseAPI: NSObject {
     }
 
     ///购买
-    func purchaseProduct(prductID: String, completion:@escaping (Bool)-> Void, updateUI: ()->Void) {
+    func purchaseProduct(prductID: String, completion:@escaping (Bool)-> Void, updateUICloure: @escaping ()-> Void) {
         if SwiftyStoreKit.canMakePayments {
             SwiftyStoreKit.purchaseProduct(prductID, quantity: 1) { [weak self] purchaseResult in
                 guard let self = self else { return }
@@ -109,9 +112,11 @@ class PurchaseAPI: NSObject {
                     {
                         self.verifyPurchase (productID: prductID){ isSuccssed in
                             completion(isSuccssed)
+                            if isSuccssed {
+                                updateUICloure()
+                            }
                         }
                     }
-
                 case .error(error: let error):
                     print("购买失败: \(error.localizedDescription)")
                     completion(false)
@@ -131,16 +136,19 @@ class PurchaseAPI: NSObject {
 
 
     ///恢复购买
-    func restorePurchase(completion: @escaping (Bool) -> Void) {
-        guard let item = PurchaseAPI.readFromKeychain(key: ProductUserdefaultKeys.hasPurchasedItem) else {
-            return
-        }
+    func restorePurchase(completion: @escaping (Bool) -> Void, updateUIClosure:@escaping ()-> Void) {
         SwiftyStoreKit.fetchReceipt(forceRefresh: true) { [weak self] result in
             guard let self = self else { return }
             switch result {
             case .success:
-                self.verifyPurchase(productID: item.productID) { isSuccssed in
-                    completion(!self.isOverdue)
+                guard let item = PurchaseAPI.readFromKeychain(key: ProductUserdefaultKeys.hasPurchasedItem), let purchaseProductID = item.purchaseProductID else {
+                    return
+                }
+                self.verifyPurchase(productID: purchaseProductID) { isSuccssed in
+                    completion(isSuccssed)
+                    if isSuccssed {
+                        updateUIClosure()
+                    }
                 }
             case .error(let error):
                 completion(false)
@@ -156,9 +164,23 @@ class PurchaseAPI: NSObject {
             guard let self = self else { return }
             switch result {
             case .success(let receipt):
-                self.vertify(productID: productID, receipt: receipt)
+
+                let purchaseResult = SwiftyStoreKit.verifySubscription(
+                    ofType: .autoRenewable,
+                    productId: productID,
+                    inReceipt: receipt
+                )
+                switch purchaseResult {
+                case .purchased(let expiryDate, _): // 订阅已购买，返回过期日期和收据中的订阅项目
+                    self.getOverdueDate(expiryDate: expiryDate)
+                    print("purchased订阅过期时间: \(expiryDate.description(with: Locale.current))")
+                case .expired(let expiryDate, _): // 订阅已过期，返回过期日期和收据中的订阅项目
+                    self.getOverdueDate(expiryDate: expiryDate)
+                    print("expired订阅过期时间: \(expiryDate.description(with: Locale.current))")
+                case .notPurchased:  // 订阅未购买
+                    break
+                }
                 print("当前时间: \(Date().description(with: Locale.current))")
-                //购买完成，发送通知刷新UI
                 completion(true)
             case .error(let error):
                 print("Receipt verification failed: \(error)")
@@ -167,28 +189,12 @@ class PurchaseAPI: NSObject {
         }
     }
 
-    func vertify(productID: String, receipt : ReceiptInfo) {
-        let purchaseResult = SwiftyStoreKit.verifySubscription(
-            ofType: .autoRenewable,
-            productId: productID,
-            inReceipt: receipt
-        )
-        switch purchaseResult {
-        case .purchased(let expiryDate, _): // 订阅已购买，返回过期日期和收据中的订阅项目
-
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-            print("purchased订阅过期时间: \(expiryDate.description(with: Locale.current))----\(formatter.string(from: expiryDate))") 
-
-            //将购买的id、价格、过期时间保存至keychain
-            PurchaseAPI.setPurchsedItemPriceAndID(productID: productID, price: self.isWeekVip(productID: productID) ? PurchaseAPI.weekPrice : PurchaseAPI.yearPrice, overDueDate: expiryDate)
-
-        case .expired(let expiryDate, _): // 订阅已过期，返回过期日期和收据中的订阅项目
-            print("expired订阅过期时间: \(expiryDate.description(with: Locale.current))")
-
-        case .notPurchased:  // 订阅未购买
-            break
+    func getOverdueDate(expiryDate: Date) {
+        guard var item = PurchaseAPI.readFromKeychain(key: ProductUserdefaultKeys.hasPurchasedItem) else {
+            return
         }
+        item.OverdueDate = expiryDate
+        _ = PurchaseAPI.saveToKeychain(key: ProductUserdefaultKeys.hasPurchasedItem, value: item)
     }
 
 }
@@ -196,7 +202,7 @@ class PurchaseAPI: NSObject {
 
 extension PurchaseAPI {
     /// 存储Model到钥匙串
-   static func saveToKeychain(key: String, value: ProoductItem) -> Bool {
+   static func saveToKeychain(key: String, value: UserItem) -> Bool {
        // 定义钥匙串访问权限
        let keychainAccessible = kSecAttrAccessibleWhenUnlocked
         let encoder = JSONEncoder()
@@ -216,7 +222,7 @@ extension PurchaseAPI {
     }
 
     /// 从钥匙串中读取Model
-    static  func readFromKeychain(key: String) -> ProoductItem? {
+    static  func readFromKeychain(key: String) -> UserItem? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword as String,
             kSecAttrService as String: Bundle.main.bundleIdentifier ?? "",
@@ -228,7 +234,7 @@ extension PurchaseAPI {
         let status = SecItemCopyMatching(query as CFDictionary, &dataTypeRef)
         if status == errSecSuccess, let data = dataTypeRef as? Data {
             let decoder = JSONDecoder()
-            if let productItem = try? decoder.decode(ProoductItem.self, from: data) {
+            if let productItem = try? decoder.decode(UserItem.self, from: data) {
                 return productItem
             }
         }
@@ -236,21 +242,24 @@ extension PurchaseAPI {
     }
 
     /// 从钥匙串中删除Model
-    static func deleteFromKeychain(key: String) -> Bool {
+    static func deleteFromKeychain() -> Bool {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword as String,
             kSecAttrService as String: Bundle.main.bundleIdentifier ?? "",
-            kSecAttrAccount as String: key
+            kSecAttrAccount as String: ProductUserdefaultKeys.hasPurchasedItem
         ]
         let status = SecItemDelete(query as CFDictionary)
         return status == errSecSuccess
     }
 
-
-    /////将购买的id、价格、过期时间保存至keychain
-    static func setPurchsedItemPriceAndID(productID: String, price: String, overDueDate: Date) {
-        let item = ProoductItem(productID: productID, price: price, OverdueDate: overDueDate)
-            _ = PurchaseAPI.saveToKeychain(key: ProductUserdefaultKeys.hasPurchasedItem, value: item)
+    static func getUserItem() {
+        if let item = PurchaseAPI.readFromKeychain(key: ProductUserdefaultKeys.hasPurchasedItem) {
+            print(item)
+        } else {
+            let userItem = UserItem(isPurchased: false, purchaseProductID: nil, OverdueDate: nil)
+            _ = PurchaseAPI.saveToKeychain(key: ProductUserdefaultKeys.hasPurchasedItem, value: userItem)
+            print(userItem)
+        }
     }
 
 }

@@ -19,6 +19,8 @@
 		EBDFF1FA29B9C0680001E8A1 /* UIColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBDFF1F929B9C0680001E8A1 /* UIColor.swift */; };
 		EBDFF1FE29B9C2E30001E8A1 /* NoNetworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBDFF1FD29B9C2E30001E8A1 /* NoNetworkView.swift */; };
 		EBDFF20029BADA2D0001E8A1 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBDFF1FF29BADA2D0001E8A1 /* LoadingView.swift */; };
+		EBDFF22229BB17380001E8A1 /* Util.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBDFF22129BB17380001E8A1 /* Util.swift */; };
+		EBDFF22429BB218B0001E8A1 /* Date.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBDFF22329BB218B0001E8A1 /* Date.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +40,8 @@
 		EBDFF1F929B9C0680001E8A1 /* UIColor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UIColor.swift; sourceTree = "<group>"; };
 		EBDFF1FD29B9C2E30001E8A1 /* NoNetworkView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NoNetworkView.swift; sourceTree = "<group>"; };
 		EBDFF1FF29BADA2D0001E8A1 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
+		EBDFF22129BB17380001E8A1 /* Util.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Util.swift; sourceTree = "<group>"; };
+		EBDFF22329BB218B0001E8A1 /* Date.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Date.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -139,6 +143,7 @@
 		EBDFF1E829B830F90001E8A1 /* General */ = {
 			isa = PBXGroup;
 			children = (
+				EBDFF22129BB17380001E8A1 /* Util.swift */,
 				EBDFF1CC29B82A0F0001E8A1 /* AppDelegate.swift */,
 				EBDFF1EB29B87FCF0001E8A1 /* Constant.swift */,
 			);
@@ -149,6 +154,7 @@
 			isa = PBXGroup;
 			children = (
 				EBDFF1F929B9C0680001E8A1 /* UIColor.swift */,
+				EBDFF22329BB218B0001E8A1 /* Date.swift */,
 			);
 			path = Extension;
 			sourceTree = "<group>";
@@ -283,7 +289,9 @@
 				EBDFF1D129B82A0F0001E8A1 /* ViewController.swift in Sources */,
 				EBDFF1CD29B82A0F0001E8A1 /* AppDelegate.swift in Sources */,
 				EBDFF1EC29B87FCF0001E8A1 /* Constant.swift in Sources */,
+				EBDFF22229BB17380001E8A1 /* Util.swift in Sources */,
 				EBDFF1FE29B9C2E30001E8A1 /* NoNetworkView.swift in Sources */,
+				EBDFF22429BB218B0001E8A1 /* Date.swift in Sources */,
 				EBDFF20029BADA2D0001E8A1 /* LoadingView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

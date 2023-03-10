@@ -25,14 +25,22 @@ enum PurchaseProductType: String {
     }
 }
 
+struct UserItem: Encodable, Decodable {
+    var userID: String = UUID().uuidString
+    var isPurchased: Bool
+    var purchaseProductID: String?
+    var OverdueDate: Date?
+    var useDate: Date = Date()
 
-struct ProoductItem: Encodable, Decodable {
-    var productID: String
-    var price: String
-    var OverdueDate: Date
-}
+    func isUseFree() -> Bool{
+        guard let item = PurchaseAPI.readFromKeychain(key: ProductUserdefaultKeys.hasPurchasedItem) else {
+            return true
+        }
 
-
-class UserItem: NSObject {
-    
+        if Date().daysSince(date: item.useDate) == 3 {
+            return false
+        } else {
+            return true
+        }
+    }
 }

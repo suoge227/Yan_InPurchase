@@ -51,15 +51,17 @@ class ViewController: UIViewController {
     }()
 
     lazy var buyButton: UIBarButtonItem = {
-        return .init(title: "BUY", style: .plain, target: self, action: #selector(buy))
+        return .init(title: "Buy", style: .plain, target: self, action: #selector(buy))
+    }()
+
+    lazy var restoreButton: UIBarButtonItem = {
+        return .init(title: "Restore", style: .plain, target: self, action: #selector(restore))
     }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         setupConstraints()
-
-        updateMemberStatus()
     }
 
 
@@ -68,7 +70,7 @@ class ViewController: UIViewController {
 extension ViewController {
     func setupUI() {
         view.backgroundColor = .white
-        navigationItem.rightBarButtonItem = buyButton
+        navigationItem.rightBarButtonItems = [buyButton, restoreButton]
         view.addSubview(weekButton)
         view.addSubview(yearButton)
         NetworkAPI.shared.fetchNetworkStatus { [weak self] isReachable in
@@ -76,14 +78,11 @@ extension ViewController {
             if isReachable {
                 self.weekButton.isHidden = false
                 self.yearButton.isHidden = false
-                let loadView = LoadingView(frame: .zero)
-                loadView.center = Util.topViewController().view.center
-                Util.topViewController().view.addSubview(loadView)
                 PurchaseAPI.shared.getProductsInfo {[weak self]  in
                     guard let self = self else { return }
                     self.weekButton.setTitle("week: \(PurchaseAPI.weekPrice)", for: .normal)
                     self.yearButton.setTitle("year: \(PurchaseAPI.yearPrice)", for: .normal)
-                    loadView.removeFromSuperview()
+                    self.updateMemberStatus()
                 }
 
             } else {
@@ -108,15 +107,16 @@ extension ViewController {
     }
 
     func updateMemberStatus() {
-        if !PurchaseAPI.shared.isOverdue {
-            guard let item = PurchaseAPI.readFromKeychain(key: ProductUserdefaultKeys.hasPurchasedItem) else {
-                return
-            }
-            if item.productID == ProductID.weekID {
-                selectedType = .WeekProduct
-            } else if item.productID == ProductID.yearID {
-                selectedType = .YearProduct
-            }
+        guard let item = PurchaseAPI.readFromKeychain(key: ProductUserdefaultKeys.hasPurchasedItem),
+              !PurchaseAPI.shared.isOverdue, item.isPurchased else {
+            return
+        }
+        if item.purchaseProductID == ProductID.weekID {
+            selectedType = .WeekProduct
+            self.configuratePriceButton()
+        } else if item.purchaseProductID == ProductID.yearID {
+            selectedType = .YearProduct
+            self.configuratePriceButton()
         }
     }
 }
@@ -138,11 +138,48 @@ extension ViewController {
         loadView.center = Util.topViewController().view.center
         Util.topViewController().view.addSubview(loadView)
         PurchaseAPI.shared.purchaseProduct(prductID: productID) { isSuccess in
+            loadView.removeFromSuperview()
             if isSuccess {
-                print("购买成功")
+                print("购买成功")//toast提示购买成功
+                guard var item = PurchaseAPI.readFromKeychain(key: ProductUserdefaultKeys.hasPurchasedItem) else {
+                    return
+                }
+                item.purchaseProductID = productID
+                item.isPurchased = true
+                _ = PurchaseAPI.saveToKeychain(key: ProductUserdefaultKeys.hasPurchasedItem, value: item)
+                print(item)
             } else {
-                print("购买失败")
+                print("购买失败")//toast提示购买失败
             }
+        } updateUICloure: {[weak self]  in
+            guard let self = self else { return }
+            //UI更新
+            self.configuratePriceButton()
         }
     }
+
+    func configuratePriceButton() {
+        switch self.selectedType {
+        case .WeekProduct:
+            self.weekButton.setTitle(__("已购买"), for: .normal)
+        case .YearProduct:
+            self.yearButton.setTitle(__("已购买"), for: .normal)
+            self.weekButton.isHidden = true
+        default:
+            fatalError()
+        }
+    }
+
+    @objc func restore() {
+        PurchaseAPI.shared.restorePurchase(completion: { isSuccess in
+            if isSuccess {
+                //恢复成功
+            } else {
+                print("`    `")
+            }
+        }) {
+            //恢复成功更新UI
+        }
+    }
+
 }
