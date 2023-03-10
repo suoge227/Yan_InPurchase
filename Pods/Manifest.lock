@@ -1,0 +1,24 @@
+PODS:
+  - Alamofire (5.6.4)
+  - SnapKit (5.6.0)
+  - SwiftyStoreKit (0.16.1)
+
+DEPENDENCIES:
+  - Alamofire
+  - SnapKit
+  - SwiftyStoreKit
+
+SPEC REPOS:
+  trunk:
+    - Alamofire
+    - SnapKit
+    - SwiftyStoreKit
+
+SPEC CHECKSUMS:
+  Alamofire: 4e95d97098eacb88856099c4fc79b526a299e48c
+  SnapKit: e01d52ebb8ddbc333eefe2132acf85c8227d9c25
+  SwiftyStoreKit: 6b9c08810269f030586dac1fae8e75871a82e84a
+
+PODFILE CHECKSUM: 533e654c553c8b4b22976db481fe5938ba806495
+
+COCOAPODS: 1.11.3
